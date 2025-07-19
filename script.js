@@ -1,5 +1,5 @@
 // =======================================================================
-// ==              ИГРА "ДУРАК" - ФИНАЛЬНЫЙ РАБОЧИЙ КОД                ==
+// ==            ИГРА "ДУРАК" - ФИНАЛЬНЫЙ РАБОЧИЙ КОД (v4)             ==
 // =======================================================================
 
 // --- Глобальное состояние игры ---
@@ -36,7 +36,7 @@ function initGame() {
     if (trumpCard) {
         trumpSuit = trumpCard.suit;
         deck.push(trumpCard);
-    } else { // Если карт меньше 12
+    } else { 
         trumpSuit = suits[0]; 
     }
 
@@ -179,11 +179,11 @@ function canBeat(defenseCard, attackCard) {
 }
 
 function replenishHands() {
-    const replenish = (hand, isAttacker) => {
+    const replenish = (hand) => {
         while (hand.length < CARDS_IN_HAND && deck.length > 0) hand.push(deck.shift());
     };
-    if (isPlayerAttacker) { replenish(playerHand, true); replenish(opponentHand, false); }
-    else { replenish(opponentHand, true); replenish(playerHand, false); }
+    if (isPlayerAttacker) { replenish(playerHand); replenish(opponentHand); }
+    else { replenish(opponentHand); replenish(playerHand); }
 }
 
 function checkWinCondition() {
@@ -229,12 +229,7 @@ function renderGame(gameOverMessage = null) {
 
     const actionsArea = document.getElementById('player-actions');
     actionsArea.innerHTML = '';
-    if (gameState === 'playerDefend' && battleField.length > 0 && battleField.every(p => p.defense)) {
-        actionsArea.innerHTML = `<button onclick="onTakeClick()">Беру</button>`;
-    } else if (gameState === 'playerDefend' && battleField.length > 0 && !battleField.find(p => !p.defense)) {
-        // ...
-    }
-     else if (gameState === 'playerDefend') {
+    if (gameState === 'playerDefend') {
         actionsArea.innerHTML = `<button onclick="onTakeClick()">Беру</button>`;
     }
     else if (gameState === 'playerAttack' && battleField.length > 0 && battleField.every(p => p.defense)) {
@@ -248,6 +243,7 @@ function displayCards(areaId, cards = [], showBack, stack = false) {
     areaElement.innerHTML = '';
     const cardsToDisplay = stack && cards.length > 0 ? [cards[0]] : cards;
     for (const card of cardsToDisplay) {
+        if (!card) continue; // Пропускаем пустые слоты
         const cardElement = createCardElement(card, showBack);
         areaElement.appendChild(cardElement);
     }
@@ -277,7 +273,6 @@ function createCardElement(card, showBack = false) {
         return el;
     }
 
-    el.dataset.card = `${card.rank}${card.suit}`;
     if (playerHand.includes(card)) {
         el.dataset.cardIndex = playerHand.indexOf(card);
         el.addEventListener('click', onPlayerCardClick);
