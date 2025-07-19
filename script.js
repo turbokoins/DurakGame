@@ -1,5 +1,5 @@
 // =======================================================================
-// ==              ИГРА "ДУРАК" - НАСТОЯЩАЯ ФИНАЛЬНАЯ ВЕРСИЯ             ==
+// ==              ИГРА "ДУРАК" - ФИНАЛЬНЫЙ РАБОЧИЙ КОД                ==
 // =======================================================================
 
 // --- Глобальное состояние игры ---
@@ -36,6 +36,8 @@ function initGame() {
     if (trumpCard) {
         trumpSuit = trumpCard.suit;
         deck.push(trumpCard);
+    } else { // Если карт меньше 12
+        trumpSuit = suits[0]; 
     }
 
     const getMinTrump = (hand) => hand.filter(c => c.suit === trumpSuit).sort((a, b) => a.value - b.value)[0];
@@ -67,7 +69,7 @@ function onPlayerCardClick(event) {
             battleField.find(p => !p.defense).defense = selectedCard;
             
             const canOpponentAdd = opponentHand.some(card => isValidAttack(card));
-            gameState = canOpponentAdd ? 'opponentAttack' : 'playerAttack'; // ИИ может подкинуть
+            gameState = canOpponentAdd ? 'opponentAttack' : 'playerAttack';
             renderGame();
             if (gameState === 'opponentAttack') setTimeout(aiTurn, 1000);
 
@@ -104,10 +106,6 @@ function performMove(hand, card, nextState) {
     renderGame();
 }
 
-// =======================================================================
-// ==                      ЛОГИКА ИСКУССТВЕННОГО ИНТЕЛЛЕКТА (ИИ)                      ==
-// =======================================================================
-
 function aiTurn() {
     if (gameState === 'opponentAttack') {
         const cardToAttack = findCardToAttack(opponentHand, battleField.length > 0);
@@ -119,13 +117,12 @@ function aiTurn() {
         if (cardToDefend) {
             opponentHand.splice(opponentHand.indexOf(cardToDefend), 1);
             battleField.find(p => !p.defense).defense = cardToDefend;
-            gameState = 'opponentAttack'; // ИИ может подкинуть еще
+            gameState = 'opponentAttack';
             renderGame();
             if (!checkWinCondition()) setTimeout(aiTurn, 500);
         } else onAITake();
     }
     renderGame();
-    if (!checkWinCondition() && gameState === 'playerDefend') {}
 }
 
 function onAITake() {
@@ -170,10 +167,6 @@ function findCardToDefend(hand, attackingCard) {
     return null;
 }
 
-// =======================================================================
-// ==                       ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ                       ==
-// =======================================================================
-
 function isValidAttack(card) {
     if (battleField.length === 0) return true;
     const validRanks = new Set(battleField.flatMap(p => [p.attack.rank, p.defense ? p.defense.rank : null]));
@@ -185,12 +178,12 @@ function canBeat(defenseCard, attackCard) {
     return defenseCard.suit === trumpSuit && attackCard.suit !== trumpSuit;
 }
 
-function replenishHands(playerFirst = isPlayerAttacker, opponentFirst = !isPlayerAttacker) {
-    const replenish = (hand) => {
+function replenishHands() {
+    const replenish = (hand, isAttacker) => {
         while (hand.length < CARDS_IN_HAND && deck.length > 0) hand.push(deck.shift());
     };
-    if (playerFirst) { replenish(playerHand); replenish(opponentHand); }
-    else if (opponentFirst) { replenish(opponentHand); replenish(playerHand); }
+    if (isPlayerAttacker) { replenish(playerHand, true); replenish(opponentHand, false); }
+    else { replenish(opponentHand, true); replenish(playerHand, false); }
 }
 
 function checkWinCondition() {
@@ -201,10 +194,6 @@ function checkWinCondition() {
     }
     return false;
 }
-
-// =======================================================================
-// ==                    ФУНКЦИИ ОТРИСОВКИ ИНТЕРФЕЙСА                   ==
-// =======================================================================
 
 function renderGame(gameOverMessage = null) {
     document.body.innerHTML = `
@@ -230,7 +219,7 @@ function renderGame(gameOverMessage = null) {
     displayCards('player-hand', playerHand, false);
     displayCards('opponent-hand', opponentHand, true);
     displayCards('deck', deck, true, true);
-    const trumpCard = deck.find(c => c.suit === trumpSuit && c.rank === deck[deck.length - 1].rank) || deck[deck.length - 1];
+    const trumpCard = deck.length > 0 ? deck[deck.length-1] : null;
     displayCards('trump-card', trumpCard ? [trumpCard] : [], false);
     displayBattlefield('battle-field', battleField);
 
@@ -239,9 +228,16 @@ function renderGame(gameOverMessage = null) {
         gameState === 'playerDefend' ? 'Ваша защита!' : 'Ход противника...';
 
     const actionsArea = document.getElementById('player-actions');
-    if (gameState === 'playerDefend' && battleField.length > 0) {
+    actionsArea.innerHTML = '';
+    if (gameState === 'playerDefend' && battleField.length > 0 && battleField.every(p => p.defense)) {
         actionsArea.innerHTML = `<button onclick="onTakeClick()">Беру</button>`;
-    } else if (gameState === 'playerAttack' && battleField.length > 0 && battleField.every(p => p.defense)) {
+    } else if (gameState === 'playerDefend' && battleField.length > 0 && !battleField.find(p => !p.defense)) {
+        // ...
+    }
+     else if (gameState === 'playerDefend') {
+        actionsArea.innerHTML = `<button onclick="onTakeClick()">Беру</button>`;
+    }
+    else if (gameState === 'playerAttack' && battleField.length > 0 && battleField.every(p => p.defense)) {
         actionsArea.innerHTML = `<button onclick="onPassClick()">Бито</button>`;
     }
 }
@@ -276,15 +272,23 @@ function displayBattlefield(areaId, pairs) {
 function createCardElement(card, showBack = false) {
     const el = document.createElement('div');
     el.className = 'card';
-    if (!card) return el; 
+    if (!card) {
+        el.classList.add('empty');
+        return el;
+    }
 
-    el.dataset.cardIndex = playerHand.indexOf(card);
-    if (showBack) el.classList.add('back');
-    else {
+    el.dataset.card = `${card.rank}${card.suit}`;
+    if (playerHand.includes(card)) {
+        el.dataset.cardIndex = playerHand.indexOf(card);
+        el.addEventListener('click', onPlayerCardClick);
+    }
+
+    if (showBack) {
+        el.classList.add('back');
+    } else {
         el.classList.add((['♥', '♦'].includes(card.suit)) ? 'red' : 'black');
         el.textContent = `${card.rank}${card.suit}`;
     }
-    if (playerHand.includes(card)) el.addEventListener('click', onPlayerCardClick);
     return el;
 }
 
@@ -305,6 +309,7 @@ function injectStyles() {
         #player-hand .card:hover { transform: translateY(-15px); z-index: 10; }
         .card.back { background: linear-gradient(135deg, #0d1e70, #254fde); border: 3px solid white; }
         .card.red { color: #d32f2f; }
+        .card.empty { background-color: #ffffff11; border-style: dashed; }
         h2 { margin: 10px 0 5px; font-size: 1em; }
         .game-over-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
         .game-over-screen h1 { font-size: 3em; color: #ffc107; text-shadow: 2px 2px 5px black; }
@@ -313,8 +318,6 @@ function injectStyles() {
     document.head.appendChild(style);
 }
 
-// =======================================================================
-// ==                      ТОЧКА ВХОДА - ЗАПУСК ИГРЫ                    ==
-// =======================================================================
+// --- Запуск игры ---
 injectStyles();
 initGame();
