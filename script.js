@@ -1,37 +1,34 @@
-body {
-    background-color: #0e501e;
-    color: white;
-    font-family: sans-serif;
-    text-align: center;
-    padding: 10px;
+// --- Создание колоды ---
+const suits = ['♠', '♣', '♥', '♦'];
+const ranks = ['6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+const deck = [];
+
+for (const suit of suits) {
+    for (const rank of ranks) {
+        deck.push({ suit, rank });
+    }
 }
 
-.game-board {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px; /* Расстояние между картами */
-    padding: 20px;
+// --- Тасование колоды (алгоритм Фишера-Йетса) ---
+for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
 }
 
-.card {
-    width: 80px;
-    height: 112px;
-    border-radius: 5px;
-    background-color: white;
-    border: 1px solid black;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 24px;
-    font-weight: bold;
-    cursor: pointer; /* Делает курсор как у ссылки */
-}
+// --- Отображение карт на экране ---
+const gameBoard = document.getElementById('game-board');
 
-.card.red {
-    color: red;
-}
+for (const card of deck) {
+    const cardElement = document.createElement('div');
+    cardElement.classList.add('card');
+    
+    // Добавляем цвет карте
+    if (card.suit === '♥' || card.suit === '♦') {
+        cardElement.classList.add('red');
+    } else {
+        cardElement.classList.add('black');
+    }
 
-.card.black {
-    color: black;
+    cardElement.textContent = `${card.rank}${card.suit}`;
+    gameBoard.appendChild(cardElement);
 }
