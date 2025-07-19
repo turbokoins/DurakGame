@@ -5,7 +5,7 @@ const deck = [];
 
 for (const suit of suits) {
     for (const rank of ranks) {
-        deck.push({ suit, rank }); // <--- ВОТ ЗДЕСЬ БЫЛА ОШИБКА, ТЕПЕРЬ ИСПРАВЛЕНО
+        deck.push({ suit, rank });
     }
 }
 
@@ -22,7 +22,6 @@ for (const card of deck) {
     const cardElement = document.createElement('div');
     cardElement.classList.add('card');
     
-    // Добавляем цвет карте
     if (card.suit === '♥' || card.suit === '♦') {
         cardElement.classList.add('red');
     } else {

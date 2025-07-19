@@ -10,7 +10,7 @@ body {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 10px; /* Расстояние между картами */
+    gap: 10px;
     padding: 20px;
 }
 
@@ -25,7 +25,7 @@ body {
     align-items: center;
     font-size: 24px;
     font-weight: bold;
-    cursor: pointer; /* Делает курсор как у ссылки */
+    cursor: pointer;
 }
 
 .card.red {
